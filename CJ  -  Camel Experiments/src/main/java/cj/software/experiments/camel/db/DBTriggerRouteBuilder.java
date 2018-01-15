@@ -51,11 +51,13 @@ public class DBTriggerRouteBuilder
 		String lURI = String.format("sql:select * from cjtrigger "
 				+ "where state = 'created' order by id"
 				+ "?dataSource=%s&consumer.delay=%d&consumer.initialDelay=%d&maxMessagesPerPoll=1"
-				+ "&onConsume=update cjtrigger set state = 'processed' where id = :#id",
+				+ "&onConsume=update cjtrigger set state = 'processed' where id = :#id"
+				+ "&onConsumeFailed=update cjtrigger set state = 'failed' where id = :#id",
 				this.datasourceName, this.cycleDelay, this.initialDelay);
 		from (lURI)
 			.routeId("select")
-			.log("triggered")
+			.log("triggered: ${body}")
+			.process(new ProbablyExceptionThrower())
 			.to(this.nextEndpoint)
 		;
 		//@formatter:on
