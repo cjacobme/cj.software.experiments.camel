@@ -1,15 +1,17 @@
 package cj.software.experiments.camel.eip;
 
+import java.util.List;
+
 import org.apache.camel.EndpointInject;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
-import org.apache.camel.builder.PredicateBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.processor.aggregate.AggregationStrategy;
 import org.apache.camel.test.junit4.CamelTestSupport;
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 /**
@@ -40,13 +42,8 @@ public class SplitFilterAggregatorTest
 				//@formatter:off
 				from ("direct:start")
 					.routeId("split-filter-aggr")
-					.split(body().tokenize("\n"))
+					.split(body().tokenize("\n"), new MyAggregator())
 						.log("splitted: ${body}")
-						.filter(PredicateBuilder.startsWith(body(), constant("y")))
-							.aggregate(constant(true), new MyAggregator()).completionTimeout(1000000)
-							.log("filtered: ${body}")
-						.end()
-						.log("after filter ${body}")
 					.end()
 					.log("all done ${body}")
 					.to("mock:calculated")
@@ -65,10 +62,8 @@ public class SplitFilterAggregatorTest
 		public Exchange aggregate(Exchange pOldExchange, Exchange pNewExchange)
 		{
 			Message lNewIn = pNewExchange.getIn();
-			String lNewBody = lNewIn.getBody(String.class);
-			String lSubString = lNewBody.substring(1);
-			int lNewValue = Integer.parseInt(lSubString);
 			Exchange lResult;
+			int lNewValue = this.getNewValue(lNewIn);
 			if (pOldExchange == null)
 			{
 				Integer lSum = new Integer(lNewValue);
@@ -87,6 +82,22 @@ public class SplitFilterAggregatorTest
 			SplitFilterAggregatorTest.this.log.info("back " + lStored);
 			return lResult;
 		}
+
+		private int getNewValue(Message pMessage)
+		{
+			String lNewBody = pMessage.getBody(String.class);
+			int lResult;
+			if (lNewBody.startsWith("y"))
+			{
+				String lSubString = lNewBody.substring(1);
+				lResult = Integer.parseInt(lSubString);
+			}
+			else
+			{
+				lResult = 0;
+			}
+			return lResult;
+		}
 	}
 
 	@Test
@@ -96,5 +107,32 @@ public class SplitFilterAggregatorTest
 		this.resultMock.expectedBodiesReceived(new Integer(10));
 		this.template.sendBody(lContent);
 		this.resultMock.assertIsSatisfied();
+	}
+
+	@Test
+	public void allToBeIgnored() throws InterruptedException
+	{
+		String lContent = "n13\nn25\nn62\nn-42\nn-23\nn14";
+		this.resultMock.expectedBodiesReceived(new Integer(0));
+		this.template.sendBody(lContent);
+		this.resultMock.assertIsSatisfied();
+	}
+
+	@Test
+	public void emptyString() throws InterruptedException
+	{
+		String lContent = "";
+		this.resultMock.expectedMessageCount(1);
+		this.template.sendBody(lContent);
+		this.resultMock.assertIsSatisfied();
+
+		List<Exchange> lExchanges = this.resultMock.getExchanges();
+		Assertions.assertThat(lExchanges).as("list of exchanges").hasSize(1);
+		Exchange lExchange = lExchanges.get(0);
+		Message lIn = lExchange.getIn();
+		Object lBody = lIn.getBody();
+		Assertions.assertThat(lBody).as("body in IN msg").isNotNull().isInstanceOf(String.class);
+		String lInString = (String) lBody;
+		Assertions.assertThat(lInString).as("unmodified string").isEqualTo("");
 	}
 }
