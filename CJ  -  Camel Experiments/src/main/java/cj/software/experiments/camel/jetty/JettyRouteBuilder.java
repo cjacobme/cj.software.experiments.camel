@@ -4,10 +4,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.log4j.Logger;
 
 import cj.software.experiments.camel.jetty.entity.Person;
 import cj.software.experiments.camel.jetty.entity.PersonsGetOutput;
@@ -17,6 +19,7 @@ import cj.software.experiments.camel.jetty.entity.PersonsPostOutput;
 public class JettyRouteBuilder
 		extends RouteBuilder
 {
+	private static Logger logger = Logger.getLogger(JettyRouteBuilder.class);
 
 	@Override
 	public void configure() throws Exception
@@ -45,7 +48,28 @@ public class JettyRouteBuilder
 			.setBody(method(JettyRouteBuilder.class, "listPersons"))
 			.convertBodyTo(PersonsGetOutput.class)
 		;
+		
+		from("jetty://http://localhost:8765/persons/{id}?httpMethodRestrict=DELETE")
+			.routeId("DELETE persons")
+			.setBody(method(JettyRouteBuilder.class, "delete"))
+		;
 		//@formatter:on
+	}
+
+	public static Object delete(Exchange pExchange)
+	{
+		Message lIn = pExchange.getIn();
+		String lHttpPath = lIn.getHeader(Exchange.HTTP_PATH, String.class);
+		String lUuidStr = lHttpPath.substring(lHttpPath.lastIndexOf('/') + 1);
+		UUID lUUID = UUID.fromString(lUuidStr);
+		boolean lSuccess = PersonDatastore.delete(lUUID);
+		logger.info(
+				String.format(
+						"%s: deleted %s success %s",
+						pExchange.getExchangeId(),
+						lUUID,
+						String.valueOf(lSuccess)));
+		return null;
 	}
 
 	public static Collection<Person> listPersons(Exchange pExchange)

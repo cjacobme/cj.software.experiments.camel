@@ -22,6 +22,7 @@ public class PersonDatastore
 	{
 		savePerson(new Person("Christian", "Jacob"));
 		savePerson(new Person("Barbara", "Jacob"));
+		savePerson(new Person("Johannes", "Jacob"));
 	}
 
 	public static UUID savePerson(Person pPerson)
@@ -58,6 +59,14 @@ public class PersonDatastore
 		{
 			lResult = lAll;
 		}
+		return lResult;
+	}
+
+	public static boolean delete(UUID pUUID)
+	{
+		Person lReturned = persons.remove(pUUID);
+		boolean lResult = (lReturned != null);
+		logger.info(String.format("deleted Person with id %s: %s", pUUID, String.valueOf(lResult)));
 		return lResult;
 	}
 }
