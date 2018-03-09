@@ -1,9 +1,9 @@
 package cj.software.experiments.camel.jetty;
 
-import java.util.UUID;
-
 import org.apache.camel.builder.RouteBuilder;
 
+import cj.software.experiments.camel.jetty.entity.Person;
+import cj.software.experiments.camel.jetty.entity.PersonsGetOutput;
 import cj.software.experiments.camel.jetty.entity.PersonsPostInput;
 import cj.software.experiments.camel.jetty.entity.PersonsPostOutput;
 
@@ -27,16 +27,17 @@ public class JettyRouteBuilder
 			.convertBodyTo(String.class)
 			.log("${exchangeId}: POST persons")
 			.convertBodyTo(PersonsPostInput.class)
-			.setBody(simple("${body.person}"))
+			.convertBodyTo(Person.class)
 			.setBody(method(PersonDatastore.class, "savePerson"))
-			.setBody(method(JettyRouteBuilder.class, "wrapInPersonPostOutput"))
+			.convertBodyTo(PersonsPostOutput.class)
+			.log("${exchangeId}: respond ${body.id}")
+		;
+		
+		from("jetty://http://localhost:8765/persons?httpMethodRestrict=GET")
+			.routeId("GET persons")
+			.setBody(method(PersonDatastore.class, "listPersons"))
+			.convertBodyTo(PersonsGetOutput.class)
 		;
 		//@formatter:on
-	}
-
-	public static PersonsPostOutput wrapInPersonPostOutput(UUID pUUID)
-	{
-		PersonsPostOutput lResult = new PersonsPostOutput(pUUID);
-		return lResult;
 	}
 }
