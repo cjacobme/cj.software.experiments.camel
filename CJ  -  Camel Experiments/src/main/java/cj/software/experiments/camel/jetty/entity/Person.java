@@ -6,6 +6,7 @@ import java.util.UUID;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 
 @XmlType(name = "person", propOrder =
@@ -27,20 +28,17 @@ public class Person
 	@XmlElement(required = true)
 	private String nachname;
 
-	Person()
+	protected Person()
 	{
 	}
 
-	public Person(String pVorname, String pNachname)
+	public UUID makeOrGetId()
 	{
-		this.vorname = pVorname;
-		this.nachname = pNachname;
-	}
-
-	public Person(UUID pId, String pVorname, String pNachname)
-	{
-		this(pVorname, pNachname);
-		this.id = pId;
+		if (this.id == null)
+		{
+			this.id = UUID.randomUUID();
+		}
+		return this.id;
 	}
 
 	public UUID getId()
@@ -70,5 +68,49 @@ public class Person
 		//@formatter:on
 		String lResult = lSB.toString();
 		return lResult;
+	}
+
+	public static Builder builder()
+	{
+		return new Builder();
+	}
+
+	@XmlTransient
+	public static class Builder
+	{
+		private String vorname;
+
+		private String nachname;
+
+		public <T extends Builder> T withVorname(String pVorname, Class<? extends T> pBuilderClass)
+		{
+			this.vorname = pVorname;
+			return pBuilderClass.cast(this);
+		}
+
+		public <T extends Builder> T withNachname(
+				String pNachname,
+				Class<? extends T> pBuilderClass)
+		{
+			this.nachname = pNachname;
+			return pBuilderClass.cast(this);
+		}
+
+		public Person build()
+		{
+			Person lResult = new Person();
+			lResult = this.fill(lResult);
+			return lResult;
+		}
+
+		protected Person fill(Person pPerson)
+		{
+			Person lResult = pPerson;
+			lResult.vorname = this.vorname;
+			lResult.nachname = this.nachname;
+			this.nachname = null;
+			this.vorname = null;
+			return lResult;
+		}
 	}
 }

@@ -12,6 +12,8 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.log4j.Logger;
 
 import cj.software.experiments.camel.jetty.entity.Person;
+import cj.software.experiments.camel.jetty.entity.PersonDetail;
+import cj.software.experiments.camel.jetty.entity.PersonGetOutput;
 import cj.software.experiments.camel.jetty.entity.PersonsGetOutput;
 import cj.software.experiments.camel.jetty.entity.PersonsPostInput;
 import cj.software.experiments.camel.jetty.entity.PersonsPostOutput;
@@ -53,15 +55,34 @@ public class JettyRouteBuilder
 			.routeId("DELETE persons")
 			.setBody(method(JettyRouteBuilder.class, "delete"))
 		;
+		
+		from("jetty://http://localhost:8765/person/{id}?httpMethodRestrict=GET")
+			.routeId("GET person details")
+			.setBody(method(JettyRouteBuilder.class, "readDetail"))
+			.convertBodyTo(PersonGetOutput.class)
+		;
 		//@formatter:on
 	}
 
-	public static Object delete(Exchange pExchange)
+	public static PersonDetail readDetail(Exchange pExchange)
+	{
+		UUID lUUID = JettyRouteBuilder.readUUID(pExchange);
+		PersonDetail lResult = PersonDatastore.readPerson(lUUID);
+		return lResult;
+	}
+
+	private static UUID readUUID(Exchange pExchange)
 	{
 		Message lIn = pExchange.getIn();
 		String lHttpPath = lIn.getHeader(Exchange.HTTP_PATH, String.class);
 		String lUuidStr = lHttpPath.substring(lHttpPath.lastIndexOf('/') + 1);
 		UUID lUUID = UUID.fromString(lUuidStr);
+		return lUUID;
+	}
+
+	public static Object delete(Exchange pExchange)
+	{
+		UUID lUUID = JettyRouteBuilder.readUUID(pExchange);
 		boolean lSuccess = PersonDatastore.delete(lUUID);
 		logger.info(
 				String.format(

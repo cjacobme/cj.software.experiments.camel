@@ -17,18 +17,18 @@ public class PersonsPostInput
 	private static final long serialVersionUID = 1L;
 
 	@XmlElement(required = true)
-	private Person person;
+	private PersonDetail person;
 
 	PersonsPostInput()
 	{
 	}
 
-	public PersonsPostInput(Person pPerson)
+	public PersonsPostInput(PersonDetail pPerson)
 	{
 		this.person = pPerson;
 	}
 
-	public Person getPerson()
+	public PersonDetail getPerson()
 	{
 		return this.person;
 	}

@@ -8,6 +8,8 @@ import org.apache.camel.Exchange;
 import org.apache.log4j.Logger;
 
 import cj.software.experiments.camel.jetty.entity.Person;
+import cj.software.experiments.camel.jetty.entity.PersonDetail;
+import cj.software.experiments.camel.jetty.entity.PersonGetOutput;
 import cj.software.experiments.camel.jetty.entity.PersonsGetOutput;
 import cj.software.experiments.camel.jetty.entity.PersonsPostInput;
 import cj.software.experiments.camel.jetty.entity.PersonsPostOutput;
@@ -40,6 +42,13 @@ public class PersonsConverter
 	public static PersonsGetOutput toGetOutput(Collection<Person> pPersons, Exchange pExchange)
 	{
 		PersonsGetOutput lResult = PersonsGetOutput.builder().withPersons(pPersons).build();
+		return lResult;
+	}
+
+	@Converter
+	public static PersonGetOutput toGetOutput(PersonDetail pPersonDetail, Exchange pExchange)
+	{
+		PersonGetOutput lResult = PersonGetOutput.builder().withPersonDetail(pPersonDetail).build();
 		return lResult;
 	}
 }
