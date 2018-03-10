@@ -20,9 +20,9 @@ public class PersonDatastore
 
 	static
 	{
-		savePerson(new Person("Christian", "Jacob"));
-		savePerson(new Person("Barbara", "Jacob"));
-		savePerson(new Person("Johannes", "Jacob"));
+		savePerson(new Person("Alpha", "Zulu"));
+		savePerson(new Person("Bravo", "Zulu"));
+		savePerson(new Person("Charlie", "Zulu"));
 	}
 
 	public static UUID savePerson(Person pPerson)
