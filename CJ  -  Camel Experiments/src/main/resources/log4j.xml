@@ -9,10 +9,22 @@
           value="%d{HH:mm:ss.SSS} %-5p (%-30.30t) (%-30.30c{1}) - %m%n" />
         </layout>
     </appender>
+	<appender name="file" class="org.apache.log4j.RollingFileAppender">
+	   <param name="append" value="true" />
+	   <param name="maxFileSize" value="1MB" />
+	   <param name="maxBackupIndex" value="15" />
+	   <!-- For Tomcat -->
+	   <param name="file" value="C:/temp/logs/CamelExperiments.log" />
+	   <layout class="org.apache.log4j.PatternLayout">
+		<param name="ConversionPattern" 
+			value="%d{yyyyMMdd-HH:mm:ss.SSS} %-5p (%-30.30t) (%-30.30c{1}) - %m%n" />
+	   </layout>
+	</appender>
 
     <root>
         <level value="INFO" />
         <appender-ref ref="console" />
+        <appender-ref ref="file" />
     </root>
 
 </log4j:configuration>
