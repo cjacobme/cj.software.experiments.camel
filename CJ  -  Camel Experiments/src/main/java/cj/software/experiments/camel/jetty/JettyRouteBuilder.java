@@ -1,13 +1,16 @@
 package cj.software.experiments.camel.jetty;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
+import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.log4j.Logger;
 
@@ -61,7 +64,73 @@ public class JettyRouteBuilder
 			.setBody(method(JettyRouteBuilder.class, "readDetail"))
 			.convertBodyTo(PersonGetOutput.class)
 		;
+		
+		from ("jetty://http://localhost:8765/exceptions?httpMethodRestrict=POST")
+			.routeId("POSTexceptions")
+			.convertBodyTo(String.class)
+			.log("${exchangeId}: POST exception experiments: ${body}")
+			.setProperty("critical", body())
+			.setBody(method(this, "fillPersons"))
+			.to("direct:splitLevel1")
+			.setBody(simple("Success ${exchangeProperty.critical}"))
+		;
+		
+		from ("direct:splitLevel1")
+			.routeId("splitLevel1")
+			.log("${exchangeId}: split Level 1...")
+			.split(body()).stopOnException()
+				.log("${exchangeId}: level 1 at index ${exchangeProperty.CamelSplitIndex} for ${body}")
+				.setBody(method(this, "fillPersons"))
+				.to("direct:splitLevel2")
+			.end()
+			.log("${exchangeId}: split level 1 finished")
+		;
+		
+		from ("direct:splitLevel2")
+			.routeId("splitLevel2")
+			.log("${exchangeId}: split Level 2...")
+			.split(body()).stopOnException()
+				.log("${exchangeId}: level 2 at index ${exchangeProperty.CamelSplitIndex} for ${body}")
+				.setBody(method(this, "fillPersons"))
+				.to("direct:splitLevel3")
+			.end()
+			.log("${exchangeId}: split level 2 finished")
+		;
+		
+		from ("direct:splitLevel3")
+			.routeId("splitLevel3")
+			.log("${exchangeId}: split Level 3...")
+			.split(body()).stopOnException()
+				.log("${exchangeId}: level 3 at index ${exchangeProperty.CamelSplitIndex} for ${body}")
+				.process(new FakeExceptionProcessor())
+			.end()
+			.log("${exchangeId}: split level 3 finished")
+		;
 		//@formatter:on
+	}
+
+	private class FakeExceptionProcessor
+			implements
+			Processor
+	{
+
+		@Override
+		public void process(Exchange pExchange) throws Exception
+		{
+			Message lIn = pExchange.getIn();
+			String lBody = lIn.getBody(String.class);
+			String lCritical = pExchange.getProperty("critical", String.class);
+			if (lBody.startsWith(lCritical))
+			{
+				throw new RuntimeException("I don't like " + lBody);
+			}
+		}
+
+	}
+
+	public List<String> fillPersons()
+	{
+		return Arrays.asList("One", "Two", "Three", "Four");
 	}
 
 	public static PersonDetail readDetail(Exchange pExchange)
