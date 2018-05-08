@@ -20,6 +20,7 @@ import cj.software.experiments.camel.jetty.entity.PersonGetOutput;
 import cj.software.experiments.camel.jetty.entity.PersonsGetOutput;
 import cj.software.experiments.camel.jetty.entity.PersonsPostInput;
 import cj.software.experiments.camel.jetty.entity.PersonsPostOutput;
+import cj.software.experiments.camel.jetty.tools.StringIterator;
 
 public class JettyRouteBuilder
 		extends RouteBuilder
@@ -106,7 +107,27 @@ public class JettyRouteBuilder
 			.end()
 			.log("${exchangeId}: split level 3 finished")
 		;
+		
+		from ("jetty://http://localhost:8765/iterate?httpMethodRestrict=POST")
+			.routeId("POSTiterations")
+			.convertBodyTo(String.class)
+			.log("${exchangeId}: POST iterations: ${body}")
+			.setBody(method(this, "createStringIterator"))
+			.log("${exchangeId}: String-Iterator created")
+			.split(body()).streaming()
+				.log("${exchangeId}: iterate ${body}")
+			.end()
+		;
+		
 		//@formatter:on
+	}
+
+	public StringIterator createStringIterator(Exchange pExchange)
+	{
+		Message lIn = pExchange.getIn();
+		String lBody = lIn.getBody(String.class);
+		StringIterator lResult = new StringIterator(lBody);
+		return lResult;
 	}
 
 	private class FakeExceptionProcessor
