@@ -6,6 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.apache.camel.EndpointInject;
+import org.apache.camel.Exchange;
+import org.apache.camel.Message;
+import org.apache.camel.Predicate;
 import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.RoutesBuilder;
@@ -23,6 +26,9 @@ public class JsonSplitTest
 	@EndpointInject(uri = "mock:detail")
 	private MockEndpoint mockDetail;
 
+	@EndpointInject(uri = "mock:filtered")
+	private MockEndpoint mockFiltered;
+
 	@Override
 	protected RoutesBuilder createRouteBuilder()
 	{
@@ -35,8 +41,22 @@ public class JsonSplitTest
 				from ("direct:start")
 					.routeId("start")
 					.split().jsonpath("$").streaming()
-						.log("${exchangeId}: ${body}")
+						.log("${exchangeId}: checked: ${body}")
 						.to("mock:detail")
+						.filter(new Predicate()
+						{
+							
+							@Override
+							public boolean matches(Exchange pExchange)
+							{
+								Message lIn = pExchange.getIn();
+								String lBody = lIn.getBody(String.class);
+								boolean lResult = lBody.contains("name=test");
+								return lResult;
+							}
+						})
+						.log("${exchangeId}: filtered ${body}")
+						.to("mock:filtered")
 					.end()
 				;
 				//@formatter:on
@@ -52,7 +72,8 @@ public class JsonSplitTest
 				Files.readAllBytes(
 						Paths.get(JsonSplitTest.class.getResource("Persons.json").toURI())));
 		this.mockDetail.expectedMessageCount(8);
+		this.mockFiltered.expectedMessageCount(4);
 		this.producerTemplate.sendBody(lJsonString);
-		this.mockDetail.assertIsSatisfied();
+		MockEndpoint.assertIsSatisfied(this.mockDetail, this.mockFiltered);
 	}
 }
