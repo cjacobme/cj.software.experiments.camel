@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
 
 import org.apache.camel.EndpointInject;
 import org.apache.camel.Exchange;
@@ -41,7 +42,7 @@ public class JsonSplitTest
 				from ("direct:start")
 					.routeId("start")
 					.split().jsonpath("$").streaming()
-						.log("${exchangeId}: checked: ${body}")
+						.log("${exchangeId}: checked: ${body.class.name} ${body}")
 						.to("mock:detail")
 						.filter(new Predicate()
 						{
@@ -50,8 +51,10 @@ public class JsonSplitTest
 							public boolean matches(Exchange pExchange)
 							{
 								Message lIn = pExchange.getIn();
-								String lBody = lIn.getBody(String.class);
-								boolean lResult = lBody.contains("name=test");
+								@SuppressWarnings("unchecked")
+								LinkedHashMap<String, Object> lBody = lIn.getBody(LinkedHashMap.class);
+								String lName = (String) lBody.get("name");
+								boolean lResult = lName.startsWith("test");
 								return lResult;
 							}
 						})
